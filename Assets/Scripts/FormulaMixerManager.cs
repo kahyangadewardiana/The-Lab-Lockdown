@@ -65,6 +65,15 @@ public class FormulaMixerManager : MonoBehaviour
     [Header("Finale")]
     public GhostAI ghost;
     public List<DoorInteractable> doorsToUnlock = new List<DoorInteractable>();
+    [Tooltip("Pintu GESER (yang pakai DrawerInteractable) yang ikut ke-unlock (opsional)")]
+    public List<DrawerInteractable> drawersToUnlock = new List<DrawerInteractable>();
+
+    [Header("Petunjuk Setelah Formula Selesai")]
+    [TextArea(2, 4)]
+    public string hintAfterComplete = "";
+    [Tooltip("Opsional: tujuan berikutnya (misal pintu keluar akhir), untuk arah & jarak")]
+    public Transform nextTarget;
+    public bool showDirection = false;
 
     private List<string> enteredOrder = new List<string>();
     private bool isComplete = false;
@@ -181,16 +190,26 @@ public class FormulaMixerManager : MonoBehaviour
     {
         isComplete = true;
         ClosePanel();
+        MissionEvents.Complete(MissionId.FormulaMix);
 
         if (ClueUIManager.Instance != null)
         {
-            ClueUIManager.Instance.ShowMessage(
-                "Penawar berhasil diracik! Tapi sesuatu terasa salah...", 4f);
+            string message = "Penawar berhasil diracik! Tapi sesuatu terasa salah...";
+
+            string hint = NextHint.Compose(hintAfterComplete, nextTarget, showDirection);
+            if (hint.Length > 0) message += "\n" + hint;
+
+            ClueUIManager.Instance.ShowMessage(message, hint.Length > 0 ? 6f : 4f);
         }
 
         foreach (DoorInteractable door in doorsToUnlock)
         {
-            if (door != null) door.lockedUntilMissionComplete = false;
+            if (door != null) door.Unlock();
+        }
+
+        foreach (DrawerInteractable drawer in drawersToUnlock)
+        {
+            if (drawer != null) drawer.Unlock();
         }
 
         if (ghost != null)

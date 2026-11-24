@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1783ff1f2687b6d48a4d7d7efce2b8bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameOverSceneController
-  gameplaySceneName: SampleScene
+  gameplaySceneName: Gameplay
   yesButton: {fileID: 244679736}
   noButton: {fileID: 274943044}
 --- !u!4 &215773412

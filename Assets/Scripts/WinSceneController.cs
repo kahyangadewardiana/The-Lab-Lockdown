@@ -25,6 +25,15 @@ public class WinSceneController : MonoBehaviour
     public string gameplaySceneName = "SampleScene";
     public string mainMenuSceneName = "MainMenu";
 
+    [Header("Suara (opsional)")]
+    [Tooltip("Dimainkan sekali begitu WinScene muncul (misal fanfare kemenangan)")]
+    public AudioClip winSound;
+    [Range(0f, 1f)] public float winSoundVolume = 1f;
+
+    [Tooltip("Musik yang berputar terus selama di layar menang (opsional)")]
+    public AudioClip winMusic;
+    [Range(0f, 1f)] public float winMusicVolume = 0.6f;
+
     [Header("UI References")]
     public Text gameWinText;
     public Text timeText;
@@ -40,6 +49,8 @@ public class WinSceneController : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        PlayWinAudio();
 
         if (gameWinText != null)
         {
@@ -64,6 +75,28 @@ public class WinSceneController : MonoBehaviour
         if (mainMenuButton != null)
         {
             mainMenuButton.onClick.AddListener(GoToMainMenu);
+        }
+    }
+
+    private void PlayWinAudio()
+    {
+        if (winSound != null)
+        {
+            AudioSource sfx = gameObject.AddComponent<AudioSource>();
+            sfx.playOnAwake = false;
+            sfx.spatialBlend = 0f;
+            sfx.PlayOneShot(winSound, winSoundVolume);
+        }
+
+        if (winMusic != null)
+        {
+            AudioSource music = gameObject.AddComponent<AudioSource>();
+            music.clip = winMusic;
+            music.loop = true;
+            music.volume = winMusicVolume;
+            music.playOnAwake = false;
+            music.spatialBlend = 0f;
+            music.Play();
         }
     }
 

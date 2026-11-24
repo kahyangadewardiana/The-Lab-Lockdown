@@ -29,12 +29,33 @@ public class ClueDigit : MonoBehaviour, IInteractable
     [TextArea(1, 3)]
     public string flavorText = "Ada angka tercoret di sini.";
 
+    [Header("Petunjuk Berikutnya")]
+    [TextArea(2, 4)]
+    public string hintToNext = "";
+    [Tooltip("Opsional: object tujuan berikutnya (clue lain / server), untuk arah & jarak")]
+    public Transform nextTarget;
+    public bool showDirection = false;
+
+    [Header("Suara (opsional)")]
+    public AudioClip inspectSound;
+
     public void Interact()
     {
-        if (ClueUIManager.Instance != null)
+        AudioManager.PlayAt(inspectSound, transform.position);
+
+        if (ClueUIManager.Instance == null) return;
+
+        string message = $"{flavorText}\nAngka: {digitValue}";
+        float duration = 3f;
+
+        string hint = NextHint.Compose(hintToNext, nextTarget, showDirection);
+        if (hint.Length > 0)
         {
-            ClueUIManager.Instance.ShowClue(digitValue, flavorText);
+            message += "\n" + hint;
+            duration = 6f;
         }
+
+        ClueUIManager.Instance.ShowMessage(message, duration);
     }
 
     public string GetPrompt()

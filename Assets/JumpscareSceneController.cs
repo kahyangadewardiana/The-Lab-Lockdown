@@ -26,10 +26,23 @@ public class JumpscareSceneController : MonoBehaviour
     [Tooltip("Nama PERSIS scene Game Over Anda (harus terdaftar di Build Settings)")]
     public string nextSceneName = "GameOverScene";
 
+    [Tooltip("Cara termudah: drag FILE suara jumpscare (.wav/.mp3/.ogg) langsung ke sini")]
+    public AudioClip jumpscareSound;
+    [Range(0f, 1f)] public float jumpscareVolume = 1f;
+
+    [Tooltip("Alternatif: kalau Anda sudah punya komponen Audio Source berisi suara, drag ke sini")]
     public AudioSource jumpscareAudio;
 
     private void Start()
     {
+        if (jumpscareSound != null)
+        {
+            AudioSource source = gameObject.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.spatialBlend = 0f;
+            source.PlayOneShot(jumpscareSound, jumpscareVolume);
+        }
+
         if (jumpscareAudio != null)
         {
             jumpscareAudio.Play();

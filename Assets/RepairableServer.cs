@@ -29,6 +29,13 @@ public class RepairableServer : MonoBehaviour, IInteractable
              "prefab tambahan). Boleh dikosongkan kalau tidak perlu.")]
     public bool tintGreenWhenFixed = true;
 
+    [Header("Petunjuk Berikutnya (muncul setelah server ini diperbaiki)")]
+    [TextArea(2, 4)]
+    public string hintToNext = "";
+    [Tooltip("Opsional: server berikutnya yang perlu diperbaiki, untuk arah & jarak")]
+    public RepairableServer nextServer;
+    public bool showDirection = false;
+
     private Renderer rend;
 
     private void Awake()
@@ -92,5 +99,32 @@ public class RepairableServer : MonoBehaviour, IInteractable
         }
 
         MissionManager.Instance?.NotifyServerFixed();
+
+        ShowFixedMessage();
+    }
+
+    private void ShowFixedMessage()
+    {
+        if (ClueUIManager.Instance == null) return;
+
+        string message = "Server berhasil diperbaiki";
+
+        if (MissionManager.Instance != null)
+        {
+            message += $" ({MissionManager.Instance.GetFixedCount()}/{MissionManager.Instance.GetTotalServers()})";
+
+            if (MissionManager.Instance.IsMissionComplete())
+            {
+                message += "\nSemua server sudah diperbaiki.";
+            }
+        }
+
+        // Server berikutnya yang sudah diperbaiki tidak dijadikan target arah
+        Transform target = (nextServer != null && !nextServer.isFixed) ? nextServer.transform : null;
+
+        string hint = NextHint.Compose(hintToNext, target, showDirection);
+        if (hint.Length > 0) message += "\n" + hint;
+
+        ClueUIManager.Instance.ShowMessage(message, 6f);
     }
 }

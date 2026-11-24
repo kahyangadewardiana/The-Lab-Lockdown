@@ -42,6 +42,27 @@ public class SpawnHintManager : MonoBehaviour
 
     private bool hasShown = false;
 
+    // Dipakai RoomHintTrigger.cs supaya ruangan lain bisa menampilkan
+    // petunjuk lewat panel yang SAMA dengan petunjuk di ruangan pertama.
+    public static SpawnHintManager Instance { get; private set; }
+
+    private void Awake()
+    {
+        Instance = this;
+    }
+
+    // Tampilkan pesan baru di panel yang sama. duration <= 0 berarti
+    // pakai 'Display Duration' bawaan.
+    public void ShowHint(string newMessage, float duration = -1f)
+    {
+        if (hintText != null) hintText.text = newMessage;
+        if (hintPanel != null) hintPanel.SetActive(true);
+
+        hasShown = true;
+        CancelInvoke(nameof(HideHint));
+        Invoke(nameof(HideHint), duration > 0f ? duration : displayDuration);
+    }
+
     private void Start()
     {
         if (hintPanel != null) hintPanel.SetActive(true);

@@ -22,6 +22,16 @@ public class ElectricalPanel : MonoBehaviour, IInteractable
     [Tooltip("Pintu-pintu yang otomatis ke-unlock setelah panel ini diperbaiki (opsional)")]
     public List<DoorInteractable> doorsToUnlock = new List<DoorInteractable>();
 
+    [Tooltip("Pintu GESER (yang pakai DrawerInteractable) yang ikut ke-unlock (opsional)")]
+    public List<DrawerInteractable> drawersToUnlock = new List<DrawerInteractable>();
+
+    [Header("Petunjuk Setelah Panel Diperbaiki")]
+    [TextArea(2, 4)]
+    public string hintAfterFixed = "";
+    [Tooltip("Opsional: tujuan berikutnya (misal pintu yang baru terbuka), untuk arah & jarak")]
+    public Transform nextTarget;
+    public bool showDirection = false;
+
     private bool isFixed = false;
 
     public void Interact()
@@ -42,6 +52,8 @@ public class ElectricalPanel : MonoBehaviour, IInteractable
         }
 
         isFixed = true;
+        MissionEvents.Complete(MissionId.ElectricalPanel);
+        ShowFixedMessage();
 
         foreach (GameObject light in lightsToEnable)
         {
@@ -50,8 +62,25 @@ public class ElectricalPanel : MonoBehaviour, IInteractable
 
         foreach (DoorInteractable door in doorsToUnlock)
         {
-            if (door != null) door.lockedUntilMissionComplete = false;
+            if (door != null) door.Unlock();
         }
+
+        foreach (DrawerInteractable drawer in drawersToUnlock)
+        {
+            if (drawer != null) drawer.Unlock();
+        }
+    }
+
+    private void ShowFixedMessage()
+    {
+        if (ClueUIManager.Instance == null) return;
+
+        string message = "Panel listrik menyala kembali.";
+
+        string hint = NextHint.Compose(hintAfterFixed, nextTarget, showDirection);
+        if (hint.Length > 0) message += "\n" + hint;
+
+        ClueUIManager.Instance.ShowMessage(message, 6f);
     }
 
     public string GetPrompt()

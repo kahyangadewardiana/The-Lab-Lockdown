@@ -78,6 +78,7 @@ public class MissionManager : MonoBehaviour
     private void OnMissionComplete()
     {
         Debug.Log("Misi selesai! Semua server sudah diperbaiki.");
+        MissionEvents.Complete(MissionId.ServerRepair);
 
         if (missionCompletePanel != null)
         {

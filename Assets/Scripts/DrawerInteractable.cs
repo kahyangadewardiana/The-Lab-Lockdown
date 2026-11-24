@@ -27,13 +27,55 @@ public class DrawerInteractable : MonoBehaviour, IInteractable
     [Tooltip("Seberapa cepat animasi geser buka/tutup")]
     public float openSpeed = 3f;
 
-    [Header("Kunci Sampai Misi Selesai (opsional)")]
+    [Header("Suara (opsional)")]
+    public AudioClip openSound;
+    public AudioClip closeSound;
+    [Tooltip("Dimainkan waktu Player mencoba membuka yang terkunci")]
+    public AudioClip lockedSound;
+
+    [Header("Kunci Manual")]
+    [Tooltip("Centang untuk mengunci dari awal. Akan dibuka oleh misi " +
+             "lain yang memanggil Unlock() (misal ElectricalPanel, " +
+             "UploadTerminal, FormulaMixerManager).")]
+    public bool isLocked = false;
+
+    [Header("Kunci Sampai Misi Server Selesai (opsional)")]
     public bool lockedUntilMissionComplete = false;
     public MissionManager missionManager;
+
+    [Header("Buka Otomatis Saat Misi Selesai")]
+    [Tooltip("Pilih misi yang membuka kunci pintu ini. Begitu misi itu selesai, " +
+             "pintu otomatis terbuka kuncinya. None = tidak ada.")]
+    public MissionId unlockWhenMissionComplete = MissionId.None;
 
     private bool isOpen = false;
     private Vector3 closedLocalPosition;
     private Vector3 openLocalPosition;
+
+    private void OnEnable()
+    {
+        MissionEvents.OnMissionCompleted += HandleMissionCompleted;
+
+        // Kalau misinya ternyata sudah selesai sebelum object ini aktif
+        if (unlockWhenMissionComplete != MissionId.None &&
+            MissionEvents.IsCompleted(unlockWhenMissionComplete))
+        {
+            Unlock();
+        }
+    }
+
+    private void OnDisable()
+    {
+        MissionEvents.OnMissionCompleted -= HandleMissionCompleted;
+    }
+
+    private void HandleMissionCompleted(MissionId id)
+    {
+        if (unlockWhenMissionComplete != MissionId.None && id == unlockWhenMissionComplete)
+        {
+            Unlock();
+        }
+    }
 
     private void Start()
     {
@@ -50,15 +92,35 @@ public class DrawerInteractable : MonoBehaviour, IInteractable
 
     private bool IsLocked()
     {
+        if (isLocked) return true;
+
         if (!lockedUntilMissionComplete) return false;
         if (missionManager == null) return false;
         return !missionManager.IsMissionComplete();
     }
 
+    // Dipanggil oleh sistem misi lain untuk membuka/mengunci pintu ini.
+    public void Unlock()
+    {
+        isLocked = false;
+        lockedUntilMissionComplete = false;
+    }
+
+    public void Lock()
+    {
+        isLocked = true;
+    }
+
     public void Interact()
     {
-        if (IsLocked()) return;
+        if (IsLocked())
+        {
+            AudioManager.PlayAt(lockedSound, transform.position);
+            return;
+        }
+
         isOpen = !isOpen;
+        AudioManager.PlayAt(isOpen ? openSound : closeSound, transform.position);
     }
 
     public string GetPrompt()
@@ -71,6 +133,7 @@ public class DrawerInteractable : MonoBehaviour, IInteractable
 
     public void ForceClose()
     {
+        if (isOpen) AudioManager.PlayAt(closeSound, transform.position);
         isOpen = false;
     }
 }

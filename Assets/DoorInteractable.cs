@@ -39,14 +39,56 @@ public class DoorInteractable : MonoBehaviour, IInteractable
     [Tooltip("Seberapa cepat animasi buka/tutup pintu")]
     public float openSpeed = 2f;
 
-    [Header("Kunci Sampai Misi Selesai")]
+    [Header("Suara (opsional)")]
+    public AudioClip openSound;
+    public AudioClip closeSound;
+    [Tooltip("Dimainkan waktu Player mencoba membuka pintu yang terkunci")]
+    public AudioClip lockedSound;
+
+    [Header("Kunci Manual")]
+    [Tooltip("Centang untuk mengunci dari awal. Akan dibuka oleh misi " +
+             "lain yang memanggil Unlock() (misal ElectricalPanel, " +
+             "UploadTerminal, FormulaMixerManager).")]
+    public bool isLocked = false;
+
+    [Header("Kunci Sampai Misi Server Selesai")]
     public bool lockedUntilMissionComplete = false;
     [Tooltip("Drag GameObject MissionManager ke sini kalau 'Locked Until Mission Complete' dicentang")]
     public MissionManager missionManager;
 
+    [Header("Buka Otomatis Saat Misi Selesai")]
+    [Tooltip("Pilih misi yang membuka kunci pintu ini. Begitu misi itu selesai, " +
+             "pintu otomatis terbuka kuncinya. None = tidak ada.")]
+    public MissionId unlockWhenMissionComplete = MissionId.None;
+
     private bool isOpen = false;
     private Quaternion closedRotation;
     private Quaternion openRotation;
+
+    private void OnEnable()
+    {
+        MissionEvents.OnMissionCompleted += HandleMissionCompleted;
+
+        // Kalau misinya ternyata sudah selesai sebelum object ini aktif
+        if (unlockWhenMissionComplete != MissionId.None &&
+            MissionEvents.IsCompleted(unlockWhenMissionComplete))
+        {
+            Unlock();
+        }
+    }
+
+    private void OnDisable()
+    {
+        MissionEvents.OnMissionCompleted -= HandleMissionCompleted;
+    }
+
+    private void HandleMissionCompleted(MissionId id)
+    {
+        if (unlockWhenMissionComplete != MissionId.None && id == unlockWhenMissionComplete)
+        {
+            Unlock();
+        }
+    }
 
     private void Start()
     {
@@ -64,10 +106,24 @@ public class DoorInteractable : MonoBehaviour, IInteractable
 
     private bool IsLocked()
     {
+        if (isLocked) return true;
+
         if (!lockedUntilMissionComplete) return false;
         if (missionManager == null) return false; // aman kalau lupa isi, anggap tidak terkunci
 
         return !missionManager.IsMissionComplete();
+    }
+
+    // Dipanggil oleh sistem misi lain untuk membuka/mengunci pintu ini.
+    public void Unlock()
+    {
+        isLocked = false;
+        lockedUntilMissionComplete = false;
+    }
+
+    public void Lock()
+    {
+        isLocked = true;
     }
 
     // Dipanggil otomatis oleh PlayerInteraction saat player tekan E
@@ -75,12 +131,12 @@ public class DoorInteractable : MonoBehaviour, IInteractable
     {
         if (IsLocked())
         {
-            // Terkunci, tidak bisa dibuka. (Bisa ditambah suara 'klik terkunci'
-            // di sini kalau mau, lewat AudioSource.PlayOneShot)
+            AudioManager.PlayAt(lockedSound, transform.position);
             return;
         }
 
         isOpen = !isOpen;
+        AudioManager.PlayAt(isOpen ? openSound : closeSound, transform.position);
     }
 
     public string GetPrompt()
@@ -100,6 +156,7 @@ public class DoorInteractable : MonoBehaviour, IInteractable
 
     public void ForceClose()
     {
+        if (isOpen) AudioManager.PlayAt(closeSound, transform.position);
         isOpen = false;
     }
 }

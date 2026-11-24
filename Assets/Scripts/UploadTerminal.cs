@@ -59,6 +59,15 @@ public class UploadTerminal : MonoBehaviour, IInteractable
 
     [Header("Setelah Selesai")]
     public List<DoorInteractable> doorsToUnlock = new List<DoorInteractable>();
+    [Tooltip("Pintu GESER (yang pakai DrawerInteractable) yang ikut ke-unlock (opsional)")]
+    public List<DrawerInteractable> drawersToUnlock = new List<DrawerInteractable>();
+
+    [Header("Petunjuk Setelah Upload Selesai")]
+    [TextArea(2, 4)]
+    public string hintAfterComplete = "";
+    [Tooltip("Opsional: tujuan berikutnya (misal pintu yang baru terbuka), untuk arah & jarak")]
+    public Transform nextTarget;
+    public bool showDirection = false;
 
     private float progress = 0f; // 0 sampai 1
     private bool complete = false;
@@ -126,15 +135,26 @@ public class UploadTerminal : MonoBehaviour, IInteractable
         complete = true;
         progress = 1f;
         UpdateUI();
+        MissionEvents.Complete(MissionId.UploadData);
 
         foreach (DoorInteractable door in doorsToUnlock)
         {
-            if (door != null) door.lockedUntilMissionComplete = false;
+            if (door != null) door.Unlock();
+        }
+
+        foreach (DrawerInteractable drawer in drawersToUnlock)
+        {
+            if (drawer != null) drawer.Unlock();
         }
 
         if (ClueUIManager.Instance != null)
         {
-            ClueUIManager.Instance.ShowMessage("Upload selesai! Data berhasil dikirim.", 4f);
+            string message = "Upload selesai! Data berhasil dikirim.";
+
+            string hint = NextHint.Compose(hintAfterComplete, nextTarget, showDirection);
+            if (hint.Length > 0) message += "\n" + hint;
+
+            ClueUIManager.Instance.ShowMessage(message, hint.Length > 0 ? 6f : 4f);
         }
     }
 

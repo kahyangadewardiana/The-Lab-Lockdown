@@ -50,6 +50,19 @@ public class GhostAI : MonoBehaviour
     [Tooltip("Suara peringatan (misal bisikan/growl pelan), dimainkan sebelum hantu benar-benar muncul")]
     public AudioSource warningSound;
 
+    [Tooltip("Tulisan peringatan yang muncul di layar sebelum hantu muncul. " +
+             "Butuh GameObject 'GhostWarningUI' di scene. Kosongkan kalau tidak mau ada tulisan.")]
+    public string warningMessage = "Ada sesuatu yang mendekat...";
+
+    [Tooltip("Kalau dicentang, tiap kali hantu muncul tampil tulisan arahnya " +
+             "terhadap Player (misal 'kiri-belakang, sekitar 6 meter'). " +
+             "Butuh GameObject 'GhostWarningUI' di scene.")]
+    public bool showDirectionOnAppear = true;
+    [Tooltip("Awalan tulisan arah. Hasil akhir: '<awalan> <arah>!'")]
+    public string appearMessage = "HANTU MUNCUL di";
+    [Tooltip("Berapa lama tulisan arah ditampilkan (detik)")]
+    public float appearHintDuration = 3f;
+
     [Header("Kejar")]
     public float chaseSpeed = 5f;
     public float catchDistance = 1.5f;
@@ -65,6 +78,10 @@ public class GhostAI : MonoBehaviour
     [Header("Audio (opsional)")]
     [Tooltip("Suara waktu hantu tiba-tiba muncul, misal jeritan/dentuman")]
     public AudioSource appearSound;
+
+    [Tooltip("Suara yang terus berputar selama hantu mengejar (misal napas berat/geraman). " +
+             "Pakai Audio Source terpisah dari 'Appear Sound'.")]
+    public AudioSource chaseLoopSound;
 
     private NavMeshAgent agent;
     private Renderer[] renderers;
@@ -112,6 +129,9 @@ public class GhostAI : MonoBehaviour
         state = GhostState.Hidden;
         SetVisible(false);
 
+        if (chaseLoopSound != null) chaseLoopSound.Stop();
+        if (AudioManager.Instance != null) AudioManager.Instance.SetChaseMode(false);
+
         if (agent.isOnNavMesh)
         {
             agent.isStopped = true;
@@ -149,6 +169,13 @@ public class GhostAI : MonoBehaviour
         {
             warningPlayed = true;
             if (warningSound != null) warningSound.Play();
+
+            if (!string.IsNullOrWhiteSpace(warningMessage) && GhostWarningUI.Instance != null)
+            {
+                // Tampil sampai hantu benar-benar muncul
+                float remaining = Mathf.Max(0.5f, nextAppearTime - Time.time);
+                GhostWarningUI.Instance.Show(warningMessage, remaining);
+            }
         }
 
         if (Time.time >= nextAppearTime)
@@ -184,6 +211,27 @@ public class GhostAI : MonoBehaviour
 
         SetVisible(true);
         if (appearSound != null) appearSound.Play();
+
+        if (GhostWarningUI.Instance != null)
+        {
+            GhostWarningUI.Instance.Hide();
+
+            if (showDirectionOnAppear)
+            {
+                string direction = NextHint.DescribeDirection(transform.position);
+                if (direction != null)
+                {
+                    GhostWarningUI.Instance.Show($"{appearMessage} {direction}!", appearHintDuration);
+                }
+            }
+        }
+
+        if (chaseLoopSound != null)
+        {
+            chaseLoopSound.loop = true;
+            chaseLoopSound.Play();
+        }
+        if (AudioManager.Instance != null) AudioManager.Instance.SetChaseMode(true);
 
         agent.isStopped = false;
         agent.speed = chaseSpeed;
@@ -248,6 +296,8 @@ public class GhostAI : MonoBehaviour
     {
         hasCaughtPlayer = true;
         agent.isStopped = true;
+
+        if (chaseLoopSound != null) chaseLoopSound.Stop();
         animator?.SetFloat(speedParamName, 0f);
         animator?.SetTrigger(attackParamName);
 
